@@ -18,7 +18,7 @@ class ANPR(ABC):
         self.algorithm_id = algo_id
         self.morph_operator = morph_op
 
-    # Hiển thị các bước xử lý nếu chế độ debug được bật.
+    # Hiển thị các bước xử lý khi bật debug.
     def display_debug(self, title, image):
         if self.debug_mode:
             cv2.imshow(title, image)
@@ -54,7 +54,7 @@ class ANPR(ABC):
             dark_mask = cv2.threshold(dark_mask, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
             return (transformed, dark_mask)
 
-    # Phương thức trừu tượng, nơi chứa logic xử lý ảnh lõi của từng thuật toán.
+    # Phương thức trừu tượng, nơi chứa logic xử lý ảnh của từng thuật toán.
     @abstractmethod
     def _process_image_for_plate(self, transformed_image):
         pass
@@ -66,11 +66,11 @@ class ANPR(ABC):
         self.display_debug("Blackhat/Tophat", transformed_image)
         self.display_debug("Brightness Mask", brightness_mask)
 
-        # 2. Gọi phương thức xử lý lõi (của Sobel, Canny, hoặc Edgeless).
+        # 2. Gọi phương thức xử lý(của Sobel, Canny, hoặc Edgeless).
         thresh_image = self._process_image_for_plate(transformed_image)
         self.display_debug("Initial Threshold", thresh_image)
 
-        # 3. Dọn dẹp ảnh nhị phân (KHÔI PHỤC LOGIC GỐC).
+        # 3. Xóa ảnh nhị phân (KHÔI PHỤC LOGIC GỐC).
         thresh_image = cv2.erode(thresh_image, None, iterations=3)
         thresh_image = cv2.dilate(thresh_image, None, iterations=3)
         thresh_image = cv2.bitwise_and(thresh_image, thresh_image, mask=brightness_mask)
@@ -84,7 +84,7 @@ class ANPR(ABC):
         contours = sorted(contours, key=cv2.contourArea, reverse=True)[:5]
         return contours
 
-    # Lọc và chọn ra biển số chính xác từ các ứng cử viên.
+    # Lọc và chọn ra biển số chính xác từ các thuật toán.
     def locate_license_plate(self, filename_prefix, gray_image, candidates, clear_border_flag=False):
         for candidate in candidates:
             (x, y, w, h) = cv2.boundingRect(candidate)
@@ -111,7 +111,7 @@ class ANPR(ABC):
             return (plate_text, plate_contour)
         return (None, None)
 
-# Lớp con cài đặt thuật toán Sobel.
+# Lớp con: Thuật toán Sobel.
 class SobelANPR(ANPR):
     def _process_image_for_plate(self, transformed_image):
         grad_x = cv2.Sobel(transformed_image, ddepth=cv2.CV_32F, dx=1, dy=0, ksize=-1)
@@ -124,16 +124,17 @@ class SobelANPR(ANPR):
         grad_x = cv2.morphologyEx(grad_x, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (13, 5)))
         return cv2.threshold(grad_x, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
 
-# Lớp con cài đặt thuật toán Canny.
+# Lớp con: Thuật toán Canny.
 class CannyANPR(ANPR):
     def _process_image_for_plate(self, transformed_image):
         canny_image = cv2.Canny(transformed_image, 50, 150)
         canny_image = cv2.morphologyEx(canny_image, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (13, 5)))
         return cv2.threshold(canny_image, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
 
-# Lớp con cài đặt thuật toán "Edgeless".
+# Lớp con: Thuật toán "Edgeless".
 class EdgelessANPR(ANPR):
     def _process_image_for_plate(self, transformed_image):
         gaussian_image = cv2.GaussianBlur(transformed_image, (5,5), 0)
         gaussian_image = cv2.morphologyEx(gaussian_image, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (13, 5)))
+
         return cv2.threshold(gaussian_image, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
