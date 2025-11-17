@@ -9,6 +9,7 @@ import os
 from abc import ABC, abstractmethod
 
 class ANPR(ABC):
+    
     # Hàm khởi tạo, thiết lập các thông số ban đầu.
     def __init__(self, algo_id, morph_op, minAR=2, maxAR=5, debug=False, save=False):
         self.min_aspect_ratio = minAR
@@ -41,13 +42,13 @@ class ANPR(ABC):
     def apply_morphological_transform(self, gray_image):
         rect_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (13, 5))
         
-        if self.morph_operator == 'bh': # Blackhat cho chữ đen nền trắng
+        if self.morph_operator == 'bh': # Blackhat cho chữ đen nền trắng.
             transformed = cv2.morphologyEx(gray_image, cv2.MORPH_BLACKHAT, rect_kernel)
             square_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
             light_mask = cv2.morphologyEx(gray_image, cv2.MORPH_CLOSE, square_kernel)
             light_mask = cv2.threshold(light_mask, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
             return (transformed, light_mask)
-        elif self.morph_operator == 'th': # Tophat cho chữ trắng nền đen
+        elif self.morph_operator == 'th': # Tophat cho chữ trắng nền đen.
             transformed = cv2.morphologyEx(gray_image, cv2.MORPH_TOPHAT, rect_kernel)
             square_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
             dark_mask = cv2.morphologyEx(gray_image, cv2.MORPH_CLOSE, square_kernel)
@@ -138,3 +139,4 @@ class EdgelessANPR(ANPR):
         gaussian_image = cv2.morphologyEx(gaussian_image, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (13, 5)))
 
         return cv2.threshold(gaussian_image, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
+
